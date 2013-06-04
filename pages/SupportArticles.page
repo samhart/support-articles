@@ -1,0 +1,164 @@
+<apex:page controller="SupportArticleController" sidebar="false">
+<apex:includeScript value="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min.js" />
+  <apex:form >
+    <script type="text/javascript">
+    j$ = jQuery.noConflict();
+	j$(document).ready(function() {
+   		//code when page is ready 
+   	});
+   	    j$(function()
+    {
+       var  kwinput = j$('#kwinput');
+        var code =null;
+        kwinput.keypress(function(e)
+        {
+            code= (e.keyCode ? e.keyCode : e.which);
+            if (code == 13 && j$('#kwinput').val().trim() != ''){ 
+            	e.preventDefault();
+            	doSearch();
+            }
+        });
+
+    });
+   	
+      function doSearch() {
+        searchServer(j$('#kwinput').val(),j$('#oldkwval').val());
+        j$('#kwinput').val('');
+        j$('#oldkwval').val('');
+      }
+      function delKW(kw){
+      	console.log('deleting: '+kw);
+      	searchServer('',kw);
+      }
+      function populateKWinput(text){
+      	j$('#kwinput').val(text);
+      	j$('#oldkwval').val(text);
+      }
+       
+      function resetOldKWVal()
+      {
+      	if(j$('#kwinput').val().trim() =='')
+      	{
+      		j$('#oldkwval').val('');
+      	}
+      	//console.log(j$('#oldkwval').val());
+      }
+      </script> 
+  	  <apex:actionFunction name="showPopUp" action="{!showPopup}" rerender="tstpopup,errors">
+      	<apex:param name="articleID" value="" />
+      </apex:actionFunction>
+      <apex:actionFunction name="addToCase" action="{!addToCase}" rerender="results,errors">
+      	<apex:param name="articleID" value="" />
+      </apex:actionFunction>
+      <apex:actionFunction name="searchServer" action="{!runSearch}" rerender="criteria,results,errors">
+          <apex:param name="kwinput" value="" />
+          <apex:param name="oldkwval" value="" />
+      </apex:actionFunction>
+  <apex:pageMessages id="errors" />
+  <apex:pageBlock mode="edit">
+<apex:outputPanel styleClass="satitle"><a href="/{!c.Id}">{!c.CaseNumber} - {!c.Subject}</a></apex:outputPanel>
+  <table width="100%" border="0">
+  <tr>  
+    <td width="200" valign="top">
+      <apex:pageBlock mode="edit" id="criteria">
+        <apex:pageBlockTable value="{!keywords}" var="keyword">
+            <apex:column >
+                <apex:facet name="header">KeyWords</apex:facet>
+                <apex:outputLink value="javascript:populateKWinput('{!keyword.text}');">{!keyword.text}</apex:outputLink>
+            </apex:column>
+            <apex:column >
+                <apex:outputLink value="javascript:delKW('{!keyword.text}');">X</apex:outputLink>
+            </apex:column>
+        </apex:pageBlockTable> 
+        <input type="text" id="kwinput" style="width:95%" onKeyUP="resetOldKWVal()" onFocus="resetOldKWVal()" onsubmit="doSearch()" />
+        <input type="hidden" id="oldkwval" />
+        <input type="button" value="Update" onclick="javascript:doSearch()"/>
+      </apex:pageBlock>
+    </td>
+    <td valign="top">
+    <apex:pageBlock mode="edit" id="results">
+        <apex:pageBlockTable value="{!articles}" var="articleWrapper">
+            <apex:column >
+                <apex:facet name="header">Article Summary</apex:facet>
+                <apex:outputLink value="javascript:showPopUp('{!articleWrapper.article.Id}');">{!articleWrapper.article.name}</apex:outputLink>
+            </apex:column>
+            <apex:column >
+                <apex:facet name="header">Score</apex:facet>
+                <apex:outputText value="{!articleWrapper.formattedScore}" />
+            </apex:column>
+            <apex:column width="10%">
+                <apex:outputText escape="false" rendered="{!articleWrapper.isRelated == false}"><input type="button" value="Associate to Case" onclick="javascript:addToCase('{!articleWrapper.article.Id}')"/></apex:outputText>
+            </apex:column>
+        </apex:pageBlockTable>
+    </apex:pageBlock>
+    </td>
+  </tr>
+  </table>
+ <!--
+  <apex:pageBlock title="Debug Panel" id="debug">
+      <apex:outputText value="{!debugText}" />           
+  </apex:pageBlock>    
+  -->
+  </apex:pageBlock>
+  <apex:outputPanel id="tstpopup">
+  <apex:outputPanel styleClass="popupBackground" layout="block" rendered="{!displayPopUp}"/>
+	      <apex:outputPanel styleClass="custPopup" layout="block" rendered="{!displayPopUp}">
+	      	<apex:outputtext styleClass="popupTitle" value="{!popupTitle}" />
+	      	<br /><br />
+	      <apex:outputPanel styleClass="popupInner" layout="block" rendered="{!displayPopUp}">
+	          <apex:outputtext escape="false" value="{!popupText}" />
+	      </apex:outputPanel> 
+      	<apex:commandButton value="Close" action="{!closePopup}" rerender="tstpopup"/>
+      	<apex:outputLink style="margin-left:20px" value="{!popupHref}" rendered="{!displayPopupLink}">Go To Article &gt;</apex:outputLink>
+      </apex:outputPanel>
+  </apex:outputPanel>
+  </apex:form>
+ <style type="text/css">
+        .custPopup{
+            background-color: white;
+            border-width: 2px;
+            border-style: solid;
+            z-index: 9999;
+            left: 50%;
+            padding:10px;
+            position: absolute;
+            /* These are the 3 css properties you will need to change so the popup
+            displays in the center of the screen. First set the width. Then set
+            margin-left to negative half of what the width is. You can add
+            the height property for a fixed size pop up if you want.*/
+            width: 500px;
+            margin-left: -250px;
+            top:100px;
+        }
+        .popupInner{
+            height:300px;
+            overflow:auto;
+        }
+        .popupTitle{
+        	font-size:16pt;
+        	font-weight:bold;
+    
+        }
+        .popupBackground{
+            background-color:black;
+            opacity: 0.20;
+            filter: alpha(opacity = 20);
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 9998;
+        }
+        .satitle{
+        	font-size: 16pt;
+        	font-weight:bold;
+        	padding: 5px;
+        	display:block;
+        }
+        .satitle a, .satitle a:hover{
+        	text-decoration:none;
+        }
+
+    </style>
+</apex:page>
